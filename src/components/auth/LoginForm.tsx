@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAwsAuth } from '@/hooks/useAwsAuth';
 import UserDashboard from '@/components/dashboards/UserDashboard';
 import ProcessingStaffDashboard from '@/components/dashboards/ProcessingStaffDashboard';
 import DeputyDirectorDashboard from '@/components/dashboards/DeputyDirectorDashboard';
@@ -18,14 +18,14 @@ interface LoginFormProps {
 const LoginForm = ({ onBack }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('');
-  const [currentUser, setCurrentUser] = useState<{ email: string; role: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, user } = useAwsAuth();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !role) {
+    if (!email || !password) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -34,25 +34,28 @@ const LoginForm = ({ onBack }: LoginFormProps) => {
       return;
     }
 
-    // Simulate login
-    setCurrentUser({ email, role });
-    toast({
-      title: "Login Successful",
-      description: `Welcome back! Redirecting to ${role} dashboard...`
-    });
+    try {
+      setIsLoading(true);
+      await signIn(email, password);
+    } catch (error) {
+      // Error is handled in useAwsAuth hook
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Render appropriate dashboard based on role
-  if (currentUser) {
-    switch (currentUser.role) {
+  // Render appropriate dashboard based on user role
+  if (user) {
+    const userObj = { email: user.email, role: user.role };
+    switch (user.role) {
       case 'user':
-        return <UserDashboard user={currentUser} onLogout={() => setCurrentUser(null)} />;
+        return <UserDashboard user={userObj} onLogout={() => window.location.reload()} />;
       case 'processing-staff':
-        return <ProcessingStaffDashboard user={currentUser} onLogout={() => setCurrentUser(null)} />;
+        return <ProcessingStaffDashboard user={userObj} onLogout={() => window.location.reload()} />;
       case 'deputy-director':
-        return <DeputyDirectorDashboard user={currentUser} onLogout={() => setCurrentUser(null)} />;
+        return <DeputyDirectorDashboard user={userObj} onLogout={() => window.location.reload()} />;
       default:
-        return <UserDashboard user={currentUser} onLogout={() => setCurrentUser(null)} />;
+        return <UserDashboard user={userObj} onLogout={() => window.location.reload()} />;
     }
   }
 
@@ -105,22 +108,12 @@ const LoginForm = ({ onBack }: LoginFormProps) => {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={setRole} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">User (Client)</SelectItem>
-                    <SelectItem value="processing-staff">Processing Staff</SelectItem>
-                    <SelectItem value="deputy-director">Deputy Director</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                Sign In
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
           </CardContent>

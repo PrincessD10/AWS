@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Check, X, Eye } from 'lucide-react';
-import { Notification, notificationService } from '@/services/notificationService';
+import { Notification, awsNotificationService } from '@/services/awsNotificationService';
 import { useToast } from '@/hooks/use-toast';
 
 interface NotificationCenterProps {
@@ -25,7 +25,7 @@ const NotificationCenter = ({ userId, onDocumentReview, onViewDocument }: Notifi
   const loadNotifications = async () => {
     try {
       setIsLoading(true);
-      const notifs = await notificationService.getNotifications(userId);
+      const notifs = await awsNotificationService.getNotifications(userId);
       setNotifications(notifs);
     } catch (error) {
       toast({
@@ -39,7 +39,7 @@ const NotificationCenter = ({ userId, onDocumentReview, onViewDocument }: Notifi
   };
 
   const markAsRead = async (notificationId: string) => {
-    await notificationService.markAsRead(notificationId);
+    await awsNotificationService.markAsRead(notificationId);
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );

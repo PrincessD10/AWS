@@ -1,14 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, Edit, Eye, Search, Filter } from 'lucide-react';
+import { FileText, Upload, Edit, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Document } from '@/types/document';
-import { documentService } from '@/services/documentService';
+import { awsDocumentService } from '@/services/awsDocumentService';
 
 interface DocumentManagerProps {
   onEditDocument: (documentId: string) => void;
@@ -35,12 +34,12 @@ const DocumentManager = ({ onEditDocument, onUploadNew }: DocumentManagerProps) 
   const loadDocuments = async () => {
     try {
       setIsLoading(true);
-      const docs = await documentService.getAllDocuments();
+      const docs = await awsDocumentService.getAllDocuments();
       setDocuments(docs);
     } catch (error) {
       toast({
         title: "Error Loading Documents",
-        description: "Failed to load documents. Please try again.",
+        description: "Failed to load documents from AWS. Please check your API configuration.",
         variant: "destructive"
       });
     } finally {
@@ -96,7 +95,7 @@ const DocumentManager = ({ onEditDocument, onUploadNew }: DocumentManagerProps) 
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading documents...</p>
+        <p className="text-gray-600">Loading documents from AWS...</p>
       </div>
     );
   }
@@ -107,7 +106,7 @@ const DocumentManager = ({ onEditDocument, onUploadNew }: DocumentManagerProps) 
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Document Manager</h2>
-          <p className="text-gray-600">Manage and edit your documents</p>
+          <p className="text-gray-600">Manage and edit your documents via AWS API</p>
         </div>
         <Button onClick={onUploadNew} className="bg-blue-600 hover:bg-blue-700">
           <Upload className="h-4 w-4 mr-2" />
@@ -174,14 +173,14 @@ const DocumentManager = ({ onEditDocument, onUploadNew }: DocumentManagerProps) 
       <Card>
         <CardHeader>
           <CardTitle>Documents ({filteredDocuments.length})</CardTitle>
-          <CardDescription>Click edit to modify document content</CardDescription>
+          <CardDescription>Documents loaded from AWS API - Click edit to modify document content</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {filteredDocuments.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No documents found matching your criteria</p>
+                <p>No documents found. Try uploading some documents or check your AWS API connection.</p>
               </div>
             ) : (
               filteredDocuments.map((doc) => (

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save, Upload, History, FileText, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Document } from '@/types/document';
-import { documentService } from '@/services/documentService';
+import { awsDocumentService } from '@/services/awsDocumentService';
 
 interface DocumentEditorProps {
   documentId: string;
@@ -32,7 +32,7 @@ const DocumentEditor = ({ documentId, onBack }: DocumentEditorProps) => {
   const loadDocument = async () => {
     try {
       setIsLoading(true);
-      const doc = await documentService.loadDocument(documentId);
+      const doc = await awsDocumentService.loadDocument(documentId);
       if (doc) {
         setDocument(doc);
         setEditedContent(doc.content);
@@ -66,7 +66,7 @@ const DocumentEditor = ({ documentId, onBack }: DocumentEditorProps) => {
 
     try {
       setIsSaving(true);
-      const success = await documentService.createNewVersion(
+      const success = await awsDocumentService.createNewVersion(
         document.id,
         editedContent,
         versionNotes || 'Updated content'

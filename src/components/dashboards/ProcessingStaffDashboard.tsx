@@ -8,9 +8,9 @@ import DocumentUpload from '@/components/documents/DocumentUpload';
 import DocumentEditor from '@/components/documents/DocumentEditor';
 import DocumentManager from '@/components/documents/DocumentManager';
 import { Document } from '@/types/document';
-import { documentService } from '@/services/documentService';
-import { notificationService } from '@/services/notificationService';
-import { reportService } from '@/services/reportService';
+import { awsDocumentService } from '@/services/awsDocumentService';
+import { awsNotificationService } from '@/services/awsNotificationService';
+import { awsReportService } from '@/services/awsReportService';
 
 interface ProcessingStaffDashboardProps {
   user: { email: string; role: string };
@@ -34,7 +34,7 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
   const loadAssignedDocuments = async () => {
     try {
       setIsLoading(true);
-      const docs = await documentService.getAllDocuments();
+      const docs = await awsDocumentService.getAllDocuments();
       setAssignedDocuments(docs);
     } catch (error) {
       toast({
@@ -49,7 +49,7 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
 
   const checkDeadlines = async () => {
     try {
-      const docs = await documentService.getAllDocuments();
+      const docs = await awsDocumentService.getAllDocuments();
       const today = new Date();
       const upcomingDeadlines = docs.filter(doc => {
         const deadline = new Date(doc.deadline);
@@ -63,7 +63,7 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
       upcomingDeadlines.forEach(async (doc) => {
         const daysLeft = Math.ceil((new Date(doc.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         if (daysLeft <= 1) {
-          await notificationService.sendDeadlineReminder(
+          await awsNotificationService.sendDeadlineReminder(
             doc.id,
             doc.name,
             doc.deadline,
@@ -79,7 +79,7 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
   const generateReports = async () => {
     try {
       setIsGeneratingReport(true);
-      const reportUrl = await reportService.generateProcessingReport();
+      const reportUrl = await awsReportService.generateProcessingReport();
       
       // Create download link and trigger download
       const link = document.createElement('a');
@@ -145,12 +145,12 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
       const document = assignedDocuments.find(doc => doc.id === docId);
       if (document) {
         const updatedDoc = { ...document, status: newStatus as any };
-        await documentService.saveDocument(updatedDoc);
+        await awsDocumentService.saveDocument(updatedDoc);
         await loadAssignedDocuments();
         
         // Send notification to deputy director when document is edited
         if (newStatus === 'in-progress') {
-          await notificationService.sendNotification({
+          await awsNotificationService.sendNotification({
             type: 'document_edited',
             title: 'Document Being Processed',
             message: `${document.name} is now being processed by ${user.email}`,
@@ -180,11 +180,11 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
       const document = assignedDocuments.find(doc => doc.id === docId);
       if (document) {
         const updatedDoc = { ...document, status: 'review' as any };
-        await documentService.saveDocument(updatedDoc);
+        await awsDocumentService.saveDocument(updatedDoc);
         await loadAssignedDocuments();
         
         // Send notification to deputy director for review
-        await notificationService.sendNotification({
+        await awsNotificationService.sendNotification({
           type: 'document_processed',
           title: 'Document Ready for Review',
           message: `${document.name} has been processed and is ready for your review and validation.`,
@@ -366,7 +366,7 @@ const ProcessingStaffDashboard = ({ user, onLogout }: ProcessingStaffDashboardPr
             <CardHeader className="text-center">
               <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-2" />
               <CardTitle>Completed Today</CardTitle>
-              <CardDescription>3 documents processed</CardDescription>
+              <CardDescription>{assignedDocuments.filter(d => d.status === 'completed').length} completed documents</CardDescription>
             </CardHeader>
           </Card>
         </div>

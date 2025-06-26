@@ -10,9 +10,9 @@ import { FileText, LogOut, Users, Building, BarChart3, TrendingUp, ClipboardList
 import { useToast } from '@/hooks/use-toast';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import DocumentCategories from '@/components/dashboards/DocumentCategories';
-import { documentService } from '@/services/documentService';
-import { notificationService } from '@/services/notificationService';
-import { reportService } from '@/services/reportService';
+import { awsDocumentService } from '@/services/awsDocumentService';
+import { awsNotificationService } from '@/services/awsNotificationService';
+import { awsReportService } from '@/services/awsReportService';
 import { Document } from '@/types/document';
 
 interface DeputyDirectorDashboardProps {
@@ -91,7 +91,7 @@ const DeputyDirectorDashboard = ({ user, onLogout }: DeputyDirectorDashboardProp
 
     try {
       // Send notification to processing staff about deadline
-      await notificationService.sendNotification({
+      await awsNotificationService.sendNotification({
         type: 'document_assigned',
         title: 'New Document Assigned with Deadline',
         message: `A new document has been assigned to you. Deadline: ${deadline}`,
@@ -116,14 +116,14 @@ const DeputyDirectorDashboard = ({ user, onLogout }: DeputyDirectorDashboardProp
 
   const handleDocumentReview = async (documentId: string, action: 'approve' | 'reject') => {
     try {
-      const document = await documentService.loadDocument(documentId);
+      const document = await awsDocumentService.loadDocument(documentId);
       if (document) {
         const newStatus = action === 'approve' ? 'completed' : 'in-progress';
         const updatedDoc = { ...document, status: newStatus as any };
-        await documentService.saveDocument(updatedDoc);
+        await awsDocumentService.saveDocument(updatedDoc);
         
         // Send notification back to processing staff
-        await notificationService.sendNotification({
+        await awsNotificationService.sendNotification({
           type: action === 'approve' ? 'document_approved' : 'document_rejected',
           title: `Document ${action === 'approve' ? 'Approved' : 'Rejected'}`,
           message: `${document.name} has been ${action}d by the Deputy Director.`,
@@ -149,7 +149,7 @@ const DeputyDirectorDashboard = ({ user, onLogout }: DeputyDirectorDashboardProp
 
   const handleViewDocument = async (documentId: string) => {
     try {
-      const document = await documentService.loadDocument(documentId);
+      const document = await awsDocumentService.loadDocument(documentId);
       if (document) {
         setSelectedDocument(document);
       } else {
@@ -171,7 +171,7 @@ const DeputyDirectorDashboard = ({ user, onLogout }: DeputyDirectorDashboardProp
   const generateAnalyticsReport = async () => {
     try {
       setIsGeneratingReport(true);
-      const reportUrl = await reportService.generateAnalyticsReport();
+      const reportUrl = await awsReportService.generateAnalyticsReport();
       
       // Create download link and trigger download
       const link = document.createElement('a');

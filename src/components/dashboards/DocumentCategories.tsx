@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { FileText, ArrowLeft, Filter, Trash2, Download } from 'lucide-react';
 import { Document } from '@/types/document';
-import { documentService } from '@/services/documentService';
+import { awsDocumentService } from '@/services/awsDocumentService';
 import { useToast } from '@/hooks/use-toast';
 
 interface DocumentCategoriesProps {
@@ -25,7 +25,7 @@ const DocumentCategories = ({ onBack }: DocumentCategoriesProps) => {
   const loadDocuments = async () => {
     try {
       setIsLoading(true);
-      const docs = await documentService.getAllDocuments();
+      const docs = await awsDocumentService.getAllDocuments();
       setDocuments(docs);
     } catch (error) {
       toast({
@@ -40,7 +40,7 @@ const DocumentCategories = ({ onBack }: DocumentCategoriesProps) => {
 
   const handleDeleteDocument = async (documentId: string, documentName: string) => {
     try {
-      const success = await documentService.deleteDocument(documentId);
+      const success = await awsDocumentService.deleteDocument(documentId);
       if (success) {
         await loadDocuments(); // Reload the documents list
         toast({
@@ -66,7 +66,7 @@ const DocumentCategories = ({ onBack }: DocumentCategoriesProps) => {
   const handleDownloadDocument = async (documentId: string, documentName: string, format: 'pdf' | 'docx') => {
     try {
       setDownloadingDoc(documentId);
-      const downloadUrl = await documentService.downloadDocument(documentId, format);
+      const downloadUrl = await awsDocumentService.downloadDocument(documentId, format);
       
       // Create download link and trigger download
       const link = document.createElement('a');

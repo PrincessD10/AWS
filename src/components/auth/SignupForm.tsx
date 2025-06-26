@@ -5,15 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAwsAuth } from '@/hooks/useAwsAuth';
+import { SignupFormData, SignupFormProps } from '@/types/signup';
+import { validateSignupForm } from '@/utils/signupValidation';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-interface SignupFormProps {
-  onBack: () => void;
-}
 
 const SignupForm = ({ onBack }: SignupFormProps) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SignupFormData>({
     firstName: '',
     lastName: '',
     email: '',
@@ -23,56 +21,45 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
     organization: '',
     department: ''
   });
-  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signUp } = useAwsAuth();
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation - check required fields based on role
-    const requiredFields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'role'];
-    
-    // Add organization and department as required only for non-user roles
-    if (formData.role !== 'user') {
-      requiredFields.push('organization', 'department');
-    }
-    
-    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
-    
-    if (missingFields.length > 0) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
+    const validation = validateSignupForm(formData);
+    if (!validation.isValid) {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive"
+    try {
+      setIsSubmitting(true);
+      await signUp({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role as 'user' | 'processing-staff' | 'deputy-director',
+        organization: formData.organization || undefined,
+        department: formData.department || undefined,
       });
-      return;
+      
+      setTimeout(() => {
+        onBack();
+      }, 2000);
+    } catch (error) {
+      // Error is handled in the useAwsAuth hook
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Simulate registration
-    toast({
-      title: "Registration Successful",
-      description: "Your account has been created. Please sign in to continue.",
-    });
-    
-    // Redirect back to home after a short delay
-    setTimeout(() => {
-      onBack();
-    }, 2000);
   };
 
   const showOrganizationFields = formData.role !== 'user';
+  const showDepartmentField = formData.role === 'processing-staff'; // Only for processing staff
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
@@ -97,6 +84,7 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
               Join DocuTrack Pro and streamline your document workflow
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -121,7 +109,7 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
                   />
                 </div>
               </div>
-
+              
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -133,7 +121,7 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
                   required
                 />
               </div>
-
+              
               <div>
                 <Label htmlFor="role">Role</Label>
                 <Select value={formData.role} onValueChange={(value) => handleChange('role', value)} required>
@@ -149,29 +137,29 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
               </div>
 
               {showOrganizationFields && (
-                <>
-                  <div>
-                    <Label htmlFor="organization">Organization</Label>
-                    <Input
-                      id="organization"
-                      value={formData.organization}
-                      onChange={(e) => handleChange('organization', e.target.value)}
-                      placeholder="Your organization name"
-                      required
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="organization">Organization</Label>
+                  <Input
+                    id="organization"
+                    value={formData.organization}
+                    onChange={(e) => handleChange('organization', e.target.value)}
+                    placeholder="Your organization name"
+                    required
+                  />
+                </div>
+              )}
 
-                  <div>
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      value={formData.department}
-                      onChange={(e) => handleChange('department', e.target.value)}
-                      placeholder="Your department"
-                      required
-                    />
-                  </div>
-                </>
+              {showDepartmentField && (
+                <div>
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    id="department"
+                    value={formData.department}
+                    onChange={(e) => handleChange('department', e.target.value)}
+                    placeholder="Your department"
+                    required
+                  />
+                </div>
               )}
 
               <div>
@@ -198,8 +186,12 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                Create Account
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
           </CardContent>
@@ -210,3 +202,6 @@ const SignupForm = ({ onBack }: SignupFormProps) => {
 };
 
 export default SignupForm;
+
+
+
